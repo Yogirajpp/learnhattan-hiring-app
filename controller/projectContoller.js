@@ -71,3 +71,35 @@ export const getAllProjects = async () => {
     throw new Error('Failed to fetch projects with GitHub data');
   }
 };
+
+
+// Fetch issues for a specific project based on GitHub repository
+export const getProjectIssues = async (projectId) => {
+  try {
+    // Find the project by ID in the database
+    const project = await Projects.findById(projectId);
+    if (!project) {
+      throw new Error('Project not found in the database');
+    }
+
+    const repoPath = project.gitLink.replace('https://github.com/', '');
+    const [owner, repo] = repoPath.split('/');
+    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
+
+    // Fetch issues from the GitHub API
+    const { data } = await axios.get(githubApiUrl);
+    console.log(`Fetched ${data.length} issues for ${project.name}`);
+
+    return data.map(issue => ({
+      title: issue.title,
+      url: issue.html_url,
+      state: issue.state,
+      createdAt: issue.created_at,
+      updatedAt: issue.updated_at,
+      user: issue.user.login,
+    }));
+  } catch (error) {
+    console.error('Error fetching issues from GitHub:', error);
+    throw new Error('Failed to fetch issues from GitHub');
+  }
+};

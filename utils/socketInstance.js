@@ -1,6 +1,4 @@
-// import { fetchGithubRepo, getAllProjects } from "../controller/projectController.js";
-
-import { fetchGithubRepo, getAllProjects } from "../controller/projectContoller.js";
+import { fetchGithubRepo, getAllProjects, getProjectIssues } from "../controller/projectContoller.js";
 
 export const socketHandler = (io) => {
   io.on('connection', (socket) => {
@@ -11,8 +9,8 @@ export const socketHandler = (io) => {
       try {
         console.log("Running getAllProjects");
         const projects = await getAllProjects();
-        console.log(projects, "proj data done");
-        // Use callback to send the response back to the client
+        console.log(projects[0]._id, "proj data done");
+        
         callback({ success: true, projects });
       } catch (error) {
         console.error('Error fetching projects:', error);
@@ -32,6 +30,18 @@ export const socketHandler = (io) => {
       } catch (error) {
         console.error('Error fetching GitHub repo:', error);
         callback({ success: false, error: 'Failed to fetch GitHub repo' });
+      }
+    });
+
+    // Fetch issues of a specific project based on GitHub data
+    socket.on('getProjectIssues', async ({ projectId }, callback) => {
+      try {
+        console.log(`Fetching issues for project with ID: ${projectId}`);
+        const issues = await getProjectIssues(projectId);
+        callback({ success: true, issues });
+      } catch (error) {
+        console.error('Error fetching project issues:', error);
+        callback({ success: false, error: 'Failed to fetch project issues' });
       }
     });
 

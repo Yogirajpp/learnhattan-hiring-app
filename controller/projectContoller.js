@@ -2,13 +2,14 @@ import Projects from '../model/Projects.js';
 import axios from 'axios';
 
 // Fetch a single GitHub project and save it to MongoDB
-export const fetchGithubRepo = async (req, res) => {
-  const { owner, repoName } = req.params;
-
+export const fetchGithubRepo = async (owner, repoName) => {
   const GITHUB_API_URL = `https://api.github.com/repos/${owner}/${repoName}`;
+
   try {
     const response = await axios.get(GITHUB_API_URL);
-    const { name, html_url, description } = response.data;
+    const gitData = response.data
+    const { name, html_url, description } = gitData;
+    console.log(response.data)
 
     const project = new Projects({
       name,
@@ -19,15 +20,15 @@ export const fetchGithubRepo = async (req, res) => {
 
     await project.save();
 
-    res.status(201).json({ success: true, project });
+    return gitData;
   } catch (error) {
     console.error('Error fetching GitHub repo:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch GitHub repo' });
+    throw new Error('Failed to fetch GitHub repo');
   }
 };
 
 // Fetch all projects and update their data from GitHub
-export const getAllProjects = async (req, res) => {
+export const getAllProjects = async () => {
   try {
     const projects = await Projects.find();
 
@@ -59,9 +60,9 @@ export const getAllProjects = async (req, res) => {
       })
     );
 
-    res.status(200).json({ success: true, projects: projectsWithGitHubData });
+    return projectsWithGitHubData;
   } catch (error) {
     console.error('Error fetching project data:', error);
-    res.status(500).json({ success: false, error: 'Failed to fetch projects with GitHub data' });
+    throw new Error('Failed to fetch projects with GitHub data');
   }
 };

@@ -30,18 +30,22 @@ export const fetchGithubRepo = async (owner, repoName) => {
 // Fetch all projects and update their data from GitHub
 export const getAllProjects = async () => {
   try {
+    console.log("get all proj")
     const projects = await Projects.find();
+    //console.log(projects)
 
     // Fetch updated GitHub data for each project
     const projectsWithGitHubData = await Promise.all(
       projects.map(async (project) => {
         try {
           const repoPath = project.gitLink.replace('https://github.com/', '');
+          //console.log(repoPath)
           const [owner, repo] = repoPath.split('/');
           const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}`;
+          //console.log(githubApiUrl)
 
           const { data } = await axios.get(githubApiUrl);
-
+          //console.log(data)
           return {
             ...project.toObject(),
             latestGitHubData: {
@@ -52,6 +56,7 @@ export const getAllProjects = async () => {
               issues: data.open_issues_count,
               language: data.language,
             },
+
           };
         } catch (error) {
           console.error(`Failed to fetch GitHub data for ${project.gitLink}:`, error);

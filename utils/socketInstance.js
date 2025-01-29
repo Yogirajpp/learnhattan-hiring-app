@@ -6,10 +6,13 @@ export const socketHandler = (io) => {
   io.on('connection', (socket) => {
     console.log('Client connected via Socket.io');
 
-    // Fetch all projects via Socket.io
-    socket.on('getAllProjects', async (callback) => {
+    // Fetch all projects via Socket.io using callback
+    socket.on('getAllProjects', async ({}, callback) => {
       try {
+        console.log("Running getAllProjects");
         const projects = await getAllProjects();
+        console.log(projects, "proj data done");
+        // Use callback to send the response back to the client
         callback({ success: true, projects });
       } catch (error) {
         console.error('Error fetching projects:', error);
@@ -23,7 +26,7 @@ export const socketHandler = (io) => {
         if (!owner || !repoName) {
           return callback({ success: false, error: 'Owner and repoName are required' });
         }
-        
+
         const project = await fetchGithubRepo(owner, repoName);
         callback({ success: true, project });
       } catch (error) {

@@ -1,8 +1,9 @@
 import express from 'express';
-import { getAllProjects } from '../controller/projectContoller.js';
+import { fetchGithubRepo, getAllProjects } from '../controller/projectContoller.js';
 
 const router = express.Router();
 
-router.get('/api/projects', getAllProjects);
+router.get('/projects', getAllProjects); // Route to fetch all projects
+router.get('/projects/:owner/:repoName', fetchGithubRepo); // Route to fetch a single GitHub repo and save it to MongoDB
 
 export default router;

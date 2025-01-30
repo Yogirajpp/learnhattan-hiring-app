@@ -1,7 +1,7 @@
 import NodeCache from "node-cache";
 import { fetchGithubRepo, getAllProjects, getProjectIssues } from "../controller/projectContoller.js";
 
-const cache = new NodeCache({ stdTTL: 300 }); // Cache expires in 5 minutes
+const cache = new NodeCache({ stdTTL: 86400 }); // Cache expires in 24 hours
 
 export const socketHandler = (io) => {
   io.on('connection', (socket) => {
@@ -16,6 +16,7 @@ export const socketHandler = (io) => {
         if (!projects) {
           projects = await getAllProjects();
           cache.set("allProjects", projects);
+          console.log(projects)
         }
 
         callback({ success: true, projects });
@@ -54,24 +55,24 @@ export const socketHandler = (io) => {
         console.log(`Fetching issues for project ID: ${projectId}`);
 
         let issues = cache.get(`issues_${projectId}`);
+
         if (!issues) {
-          // Fetch issues and only callback after setting cache
           issues = await getProjectIssues(projectId);
+
+          if (!issues || issues.length === 0) {
+            console.warn(`No issues found for project ${projectId}`);
+          }
+
           cache.set(`issues_${projectId}`, issues);
-          console.log(cache)
         }
 
         callback({ success: true, issues });
-
-        // Join a unique room for real-time updates on this project
-        socket.join(`project_${projectId}`);
       } catch (error) {
         console.error(`Error fetching project issues:`, error.message);
-        if (callback) {
-          callback({ success: false, error: 'Failed to fetch project issues' });
-        }
+        callback({ success: false, error: 'Failed to fetch project issues' });
       }
     });
+
 
     // Handle client disconnect
     socket.on('disconnect', () => {

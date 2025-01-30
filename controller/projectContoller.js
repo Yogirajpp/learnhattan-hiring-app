@@ -55,6 +55,7 @@ export const getAllProjects = async () => {
           const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}`;
 
           const { data } = await axios.get(githubApiUrl);
+          console.log(data)
 
           return {
             ...project.toObject(),

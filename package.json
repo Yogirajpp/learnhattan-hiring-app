@@ -19,6 +19,7 @@
     "http": "^0.0.1-security",
     "io": "^1.5.3",
     "mongoose": "^8.9.5",
+    "node-cache": "^5.1.2",
     "socket": "^0.14.40",
     "socket.io": "^4.8.1"
   },

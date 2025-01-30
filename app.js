@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import router from './routes/routes.js';
 import { socketHandler } from './utils/socketInstance.js';
 import http from 'http';
-
+import { webhookHandler } from './controller/webHookController.js';
 
 dotenv.config();
 const app = express();
@@ -37,6 +37,9 @@ const io = new Server(server, {
 
 app.use("/api", router);
 socketHandler(io);
+
+// Setup GitHub Webhook endpoint
+app.use('/webhooks', webhookHandler(io));
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

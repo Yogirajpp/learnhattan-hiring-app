@@ -55,8 +55,10 @@ export const socketHandler = (io) => {
 
         let issues = cache.get(`issues_${projectId}`);
         if (!issues) {
+          // Fetch issues and only callback after setting cache
           issues = await getProjectIssues(projectId);
           cache.set(`issues_${projectId}`, issues);
+          console.log(cache)
         }
 
         callback({ success: true, issues });
@@ -65,7 +67,9 @@ export const socketHandler = (io) => {
         socket.join(`project_${projectId}`);
       } catch (error) {
         console.error(`Error fetching project issues:`, error.message);
-        callback({ success: false, error: 'Failed to fetch project issues' });
+        if (callback) {
+          callback({ success: false, error: 'Failed to fetch project issues' });
+        }
       }
     });
 

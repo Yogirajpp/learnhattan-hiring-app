@@ -1,52 +1,53 @@
 import Projects from '../model/Projects.js';
 import axios from 'axios';
+import NodeCache from 'node-cache';
 
-// Function to fetch a GitHub repository and save it to MongoDB
+const cache = new NodeCache({ stdTTL: 86400 });
+
 export const fetchGithubRepo = async (owner, repoName) => {
+  const cacheKey = `repo_${owner}_${repoName}`;
+  let cachedRepo = cache.get(cacheKey);
+  if (cachedRepo) return cachedRepo;
+
   const GITHUB_API_URL = `https://api.github.com/repos/${owner}/${repoName}`;
-
   try {
-    console.log(`Fetching GitHub repository: ${owner}/${repoName}`);
-
     const { data } = await axios.get(GITHUB_API_URL);
     if (!data) throw new Error('No data received from GitHub');
 
-    const { name, html_url, description } = data;
-
-    let project = await Projects.findOne({ gitLink: html_url });
+    let project = await Projects.findOne({ gitLink: data.html_url });
     if (!project) {
       project = new Projects({
-        name,
-        content: description || 'No description provided',
-        gitLink: html_url,
+        name: data.name,
+        content: data.description || 'No description provided',
+        gitLink: data.html_url,
         status: 'active',
       });
       await project.save();
     }
 
-    console.log(`GitHub repo fetched and saved: ${name}`);
-
-    return {
-      name,
-      gitLink: html_url,
-      description,
+    const repoData = {
+      name: data.name,
+      gitLink: data.html_url,
+      description: data.description,
       stars: data.stargazers_count,
       forks: data.forks_count,
       issues: data.open_issues_count,
       language: data.language,
     };
+
+    cache.set(cacheKey, repoData);
+    return repoData;
   } catch (error) {
-    console.error(`Error fetching GitHub repo [${owner}/${repoName}]:`, error.message);
     throw new Error('Failed to fetch GitHub repo');
   }
 };
 
-// Function to fetch all projects from MongoDB and update their GitHub data
 export const getAllProjects = async () => {
-  try {
-    console.log('Fetching all projects from the database...');
-    const projects = await Projects.find();
+  let cachedProjects = cache.get("allProjects");
+  if (cachedProjects) return cachedProjects;
 
+  try {
+    const projects = await Projects.find();
     const projectsWithGitHubData = await Promise.all(
       projects.map(async (project) => {
         try {
@@ -55,7 +56,6 @@ export const getAllProjects = async () => {
           const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}`;
 
           const { data } = await axios.get(githubApiUrl);
-          console.log(data)
 
           return {
             ...project.toObject(),
@@ -68,38 +68,33 @@ export const getAllProjects = async () => {
               language: data.language,
             },
           };
-        } catch (error) {
-          console.warn(`Failed to fetch GitHub data for ${project.gitLink}:`, error.message);
+        } catch {
           return { ...project.toObject(), latestGitHubData: null };
         }
       })
     );
 
-    console.log(`Successfully fetched ${projects.length} projects with updated GitHub data.`);
+    cache.set("allProjects", projectsWithGitHubData);
     return projectsWithGitHubData;
-  } catch (error) {
-    console.error('Error fetching projects from the database:', error.message);
+  } catch {
     throw new Error('Failed to fetch projects with GitHub data');
   }
 };
 
-// Function to fetch GitHub issues for a specific project
 export const getProjectIssues = async (projectId) => {
-  try {
-    console.log(`Fetching issues for project ID: ${projectId}`);
+  let cachedIssues = cache.get(`issues_${projectId}`);
+  if (cachedIssues) return cachedIssues;
 
+  try {
     const project = await Projects.findById(projectId);
-    if (!project) throw new Error('Project not found in the database');
+    if (!project) throw new Error('Project not found');
 
     const repoPath = project.gitLink.replace('https://github.com/', '');
     const [owner, repo] = repoPath.split('/');
     const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
 
     const { data } = await axios.get(githubApiUrl);
-
-    console.log(`Fetched ${data.length} issues for ${project.name}`);
-
-    return data.map(issue => ({
+    const issues = data.map(issue => ({
       title: issue.title,
       url: issue.html_url,
       state: issue.state,
@@ -107,8 +102,10 @@ export const getProjectIssues = async (projectId) => {
       updatedAt: issue.updated_at,
       user: issue.user.login,
     }));
-  } catch (error) {
-    console.error(`Error fetching issues for project ID: ${projectId}`, error.message);
+
+    cache.set(`issues_${projectId}`, issues);
+    return issues;
+  } catch {
     throw new Error('Failed to fetch issues from GitHub');
   }
 };

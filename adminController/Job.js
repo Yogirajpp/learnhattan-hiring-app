@@ -1,5 +1,5 @@
-import Job from '../../model/Jobs.js';
-import Company from '../../model/Company.js';
+import Job from '../models/Jobs.js';
+import Company from '../models/Company.js';
 
 // Create a new job posting
 export const createJob = async (req, res) => {

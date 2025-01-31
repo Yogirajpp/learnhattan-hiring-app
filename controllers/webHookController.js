@@ -1,5 +1,5 @@
 import express from 'express';
-import Projects from '../model/Projects.js';
+import Projects from '../models/Projects.js';
 // import { getProjectIssues } from '../controller/projectController.js';
 import NodeCache from 'node-cache';
 import { getProjectIssues } from './projectContoller.js';

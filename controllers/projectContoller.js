@@ -1,4 +1,4 @@
-import Projects from '../model/Projects.js';
+import Projects from '../models/Projects.js';
 import axios from 'axios';
 import NodeCache from 'node-cache';
 

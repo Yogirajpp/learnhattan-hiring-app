@@ -1,4 +1,4 @@
-import WaitList from "../model/WaitList.js";
+import WaitList from "../models/WaitList.js";
 
 // waitlist.controller.js
 export async function createWaitlistEntry(req, res) {

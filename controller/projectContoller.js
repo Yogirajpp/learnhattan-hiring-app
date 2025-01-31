@@ -60,12 +60,13 @@ export const getAllProjects = async () => {
           return {
             ...project.toObject(),
             latestGitHubData: {
-              name: data.name,
+              name: data.full_name,
               description: data.description,
               stars: data.stargazers_count,
               forks: data.forks_count,
               issues: data.open_issues_count,
               language: data.language,
+              updatedAt: data.updated_at,
             },
           };
         } catch {

@@ -1,5 +1,5 @@
 import NodeCache from "node-cache";
-import { fetchGithubRepo, getAllProjects, getProjectIssues } from "../controller/projectContoller.js";
+import { fetchGithubRepo, getAllProjects, getProjectIssues } from "../controllers/projectContoller.js";
 
 const cache = new NodeCache({ stdTTL: 86400 }); // 24-hour cache
 

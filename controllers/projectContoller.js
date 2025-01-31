@@ -117,3 +117,35 @@ export const getProjectIssues = async (projectId) => {
     throw new Error('Failed to fetch issues from GitHub');
   }
 };
+
+
+export const getIssueComments = async (owner, repoName, issueId) => {
+  const cacheKey = `comments_${owner}_${repoName}_${issueId}`;
+  let cachedComments = cache.get(cacheKey);
+  
+  if (cachedComments) return cachedComments.length > 0 ? [cachedComments[0]] : [];
+
+  try {
+    const githubApiUrl = `https://api.github.com/repos/${owner}/${repoName}/issues/${issueId}/comments`;
+    const { data } = await axios.get(githubApiUrl);
+
+    if (data.length === 0) return []; // No comments available
+
+    const firstComment = {
+      id: data[0].id,
+      user: {
+        login: data[0].user.login,
+        html_url: data[0].user.html_url,
+      },
+      body: data[0].body,
+      createdAt: data[0].created_at,
+      updatedAt: data[0].updated_at,
+    };
+
+    cache.set(cacheKey, [firstComment]); // Store only the first comment in cache
+    return [firstComment]; // Return only the first comment
+  } catch {
+    throw new Error("Failed to fetch comments from GitHub");
+  }
+};
+

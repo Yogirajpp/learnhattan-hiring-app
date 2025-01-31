@@ -101,7 +101,14 @@ export const getProjectIssues = async (projectId) => {
       state: issue.state,
       createdAt: issue.created_at,
       updatedAt: issue.updated_at,
-      user: issue.user.login,
+      user: {
+        login: issue.user.login,
+        html_url: issue.user.html_url,
+      },
+      comments: issue.comments,
+      labels: issue.labels.map(label => label.name),
+      pullRequestUrl: issue.pull_request ? issue.pull_request.html_url : null,
+      body: issue.body,
     }));
 
     cache.set(`issues_${projectId}`, issues);

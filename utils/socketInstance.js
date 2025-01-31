@@ -1,5 +1,5 @@
 import NodeCache from "node-cache";
-import { fetchGithubRepo, getAllProjects, getProjectIssues } from "../controller/projectContoller.js";
+import { fetchGithubRepo, getAllProjects, getIssueComments, getProjectIssues } from "../controllers/projectContoller.js";
 
 const cache = new NodeCache({ stdTTL: 86400 }); // 24-hour cache
 
@@ -53,6 +53,19 @@ export const socketHandler = (io) => {
         callback({ success: false, error: 'Failed to fetch project issues' });
       }
     });
+
+    socket.on('getIssueComments', async ({ owner, repoName, issueId }, callback) => {
+      try {
+        if (!owner || !repoName || !issueId) {
+          return callback({ success: false, error: 'Owner, repoName, and issueId are required' });
+        }
+    
+        const comments = await getIssueComments(owner, repoName, issueId);
+        callback({ success: true, comments });
+      } catch (error) {
+        callback({ success: false, error: 'Failed to fetch issue comments' });
+      }
+    });    
 
     // Handle client disconnect
     socket.on('disconnect', () => {

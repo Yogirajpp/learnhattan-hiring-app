@@ -1,4 +1,4 @@
-import dotenv from 'dotenv';
+import dotenv from 'dotenv/config.js';
 import express from 'express';
 import cors from 'cors';
 import bodyParser from 'body-parser';
@@ -7,9 +7,9 @@ import { Server } from 'socket.io';
 import router from './routes/routes.js';
 import { socketHandler } from './utils/socketInstance.js';
 import http from 'http';
-import { webhookHandler } from './controller/webHookController.js';
+import { webhookHandler } from './controllers/webHookController.js';
+import { errorHandler } from './middlewares/index.js';
 
-dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 const MONGO_URI = process.env.MONGO_URI;
@@ -40,6 +40,9 @@ socketHandler(io);
 
 // Setup GitHub Webhook endpoint
 app.use('/webhooks', webhookHandler(io));
+
+// middleware for handling errors
+app.use(errorHandler);
 
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);

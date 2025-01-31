@@ -1,4 +1,4 @@
-import Projects from '../model/Projects.js';
+import Projects from '../models/Projects.js';
 import axios from 'axios';
 
 // Function to fetch a GitHub repository and save it to MongoDB

@@ -15,6 +15,7 @@ const userSchema = new mongoose.Schema({
     },
   ],
   provider: { type: String, enum: Object.values(AUTH_PROVIDERS), default: AUTH_PROVIDERS.LOCAL },
+  githubAccessToken: { type: String },
 }, { timestamps: true });
 
 // Indexes for search

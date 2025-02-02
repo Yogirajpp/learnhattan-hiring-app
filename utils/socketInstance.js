@@ -8,11 +8,11 @@ export const socketHandler = (io) => {
     console.log(`Client connected: ${socket.id}`);
 
     // Fetch all projects (cache-first approach)
-    socket.on('getAllProjects', async (_, callback) => {
+    socket.on('getAllProjects', async ({userId}, callback) => {
       try {
         let projects = cache.get("allProjects");
         if (!projects) {
-          projects = await getAllProjects();
+          projects = await getAllProjects(userId);
           cache.set("allProjects", projects);
         }
         callback({ success: true, projects });
@@ -22,7 +22,7 @@ export const socketHandler = (io) => {
     });
 
     // Fetch GitHub repo details (cache-first)
-    socket.on('fetchRepo', async ({ owner, repoName }, callback) => {
+    socket.on('fetchRepo', async ({ userId, owner, repoName }, callback) => {
       try {
         if (!owner || !repoName) return callback({ success: false, error: 'Owner and repoName are required' });
 
@@ -30,7 +30,7 @@ export const socketHandler = (io) => {
         let project = cache.get(cacheKey);
 
         if (!project) {
-          project = await fetchGithubRepo(owner, repoName);
+          project = await fetchGithubRepo(userId,owner, repoName);
           cache.set(cacheKey, project);
         }
 
@@ -41,11 +41,11 @@ export const socketHandler = (io) => {
     });
 
     // Fetch project issues (cache-first)
-    socket.on('getProjectIssues', async ({ projectId }, callback) => {
+    socket.on('getProjectIssues', async ({userId, projectId }, callback) => {
       try {
         let issues = cache.get(`issues_${projectId}`);
         if (!issues) {
-          issues = await getProjectIssues(projectId);
+          issues = await getProjectIssues(userId, projectId);
           cache.set(`issues_${projectId}`, issues);
         }
         callback({ success: true, issues });
@@ -54,13 +54,13 @@ export const socketHandler = (io) => {
       }
     });
 
-    socket.on('getIssueComments', async ({ owner, repoName, issueId }, callback) => {
+    socket.on('getIssueComments', async ({userId, owner, repoName, issueId }, callback) => {
       try {
         if (!owner || !repoName || !issueId) {
           return callback({ success: false, error: 'Owner, repoName, and issueId are required' });
         }
     
-        const comments = await getIssueComments(owner, repoName, issueId);
+        const comments = await getIssueComments(userId, owner, repoName, issueId);
         callback({ success: true, comments });
       } catch (error) {
         callback({ success: false, error: 'Failed to fetch issue comments' });

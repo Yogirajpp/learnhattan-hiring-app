@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { AUTH_PROVIDERS, COMPANY_STATUSES, EntityTypes } from '../configs/index.js';
 import { AdminServices, AuthServices, CompanyServices, UserServices } from '../services/index.js';
 import { createResponse, CustomError } from '../utils/index.js';
+import User from '../models/User.js';
 
 /**
  * User registration controller
@@ -222,45 +223,47 @@ export const getMe = async (req, res, next) => {
 /**
  * Github OAuth handler controller
  */
-export const githubOauthHandler = async (
-    req,
-    res,
-    next
-) => {
+export const githubOauthHandler = async (req, res, next) => {
     try {
-        // Get the code from the request body
         const { code, redirect_uri } = req.body;
 
         if (!code) {
             throw new CustomError('Authorization code not provided', 401);
         }
 
-        // Get the user the access_token with the code
+        // Get GitHub access token
         const { access_token } = await AuthServices.getGithubOathToken({ code, redirect_uri });
 
-        // Get the user with the access_token
+        // Get user details from GitHub
         const { email, avatar_url, login } = await AuthServices.getGithubUser({ access_token });
 
         let user = await UserServices.getUserByEmail(email);
         const isNewUser = !user;
 
-        // Create or update the user if it already exists
+        // Create or update the user
         user = await UserServices.findAndUpdateUser(email, {
             avatar: avatar_url,
             name: login,
             email,
             provider: isNewUser ? AUTH_PROVIDERS.GITHUB : user.provider,
+            githubAccessToken: access_token,
         });
 
-        // Generate user auth token
+
+        // Generate authentication token
         const authToken = await AuthServices.generateAuthToken(user._id, EntityTypes.USER);
         if (!authToken) throw new CustomError('Failed to generate auth token', 400);
 
-        // Return the auth token and user data
-        res.status(200).json(createResponse(200, "User successfully authenticated", { token: authToken, _id: user._id, name: user.name, email: user.email, isNewUser }).success());
+        res.status(200).json(createResponse(200, "User successfully authenticated", {
+            token: authToken,
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            isNewUser
+        }).success());
+
     } catch (error) {
         console.error(error);
-
         next(error);
     }
-}
+};

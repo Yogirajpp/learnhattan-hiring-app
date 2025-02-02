@@ -106,7 +106,7 @@ export const getProjectIssues = async (userId, projectId) => {
 
     const repoPath = project.gitLink.replace('https://github.com/', '');
     const [owner, repo] = repoPath.split('/');
-    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues`;
+    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&page=1&per_page=100`;
 
     const { data } = await axios.get(githubApiUrl, { headers });
     const issues = data.map(issue => ({

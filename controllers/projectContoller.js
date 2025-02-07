@@ -94,22 +94,27 @@ export const getAllProjects = async (userId) => {
   }
 };
 
-export const getProjectIssues = async (userId, projectId) => {
-  let cachedIssues = cache.get(`issues_${projectId}`);
-  if (cachedIssues) return cachedIssues;
+export const getProjectIssues = async (userId, projectId, forceRefresh = false) => {
+  if (!forceRefresh) {
+    let cachedIssues = cache.get(`issues_${projectId}`);
+    if (cachedIssues) return cachedIssues;
+  }
 
   try {
     const headers = await getAuthHeaders(userId);
     console.log('headers:', headers);
+
     const project = await Projects.findById(projectId);
     if (!project) throw new Error('Project not found');
 
+    // Fetch all issues (both open and closed) from GitHub
     const repoPath = project.gitLink.replace('https://github.com/', '');
     const [owner, repo] = repoPath.split('/');
-    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&page=1&per_page=100`;
+    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=all&page=1&per_page=100`;
 
     const { data } = await axios.get(githubApiUrl, { headers });
     const issues = data.map(issue => ({
+      id: issue.id,
       title: issue.title,
       url: issue.html_url,
       state: issue.state,
@@ -125,9 +130,17 @@ export const getProjectIssues = async (userId, projectId) => {
       body: issue.body,
     }));
 
-    cache.set(`issues_${projectId}`, issues);
-    return issues;
-  } catch {
+    // Split issues into open and closed arrays
+    const splitIssues = {
+      open: issues.filter(issue => issue.state === 'open'),
+      closed: issues.filter(issue => issue.state === 'closed'),
+    };
+
+    // Update the cache with the fresh data
+    cache.set(`issues_${projectId}`, splitIssues);
+    return splitIssues;
+  } catch (error) {
+    console.error('Error in getProjectIssues:', error);
     throw new Error('Failed to fetch issues from GitHub');
   }
 };

@@ -33,6 +33,7 @@ export const socketHandler = (io) => {
           project = await fetchGithubRepo(userId,owner, repoName);
           cache.set(cacheKey, project);
         }
+        console.log('project:', project);
 
         callback({ success: true, project });
       } catch (error) {

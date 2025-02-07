@@ -2,6 +2,7 @@ import Projects from '../models/Projects.js';
 import User from '../models/User.js'; // Import User model
 import axios from 'axios';
 import NodeCache from 'node-cache';
+import { assignIssueExp, calculateExpRange } from '../utils/common.js';
 
 const cache = new NodeCache({ stdTTL: 86400 });
 
@@ -24,6 +25,14 @@ export const fetchGithubRepo = async (userId, owner, repoName) => {
     const { data } = await axios.get(GITHUB_API_URL, { headers });
     if (!data) throw new Error('No data received from GitHub');
 
+    // Fetch issue details to count closed issues
+    const issuesUrl = `https://api.github.com/repos/${owner}/${repoName}/issues?state=closed&per_page=100`;
+    const issuesRes = await axios.get(issuesUrl, { headers });
+    const closedIssuesCount = issuesRes.data.length;
+
+    // Calculate EXP Range
+    const expRange = calculateExpRange(data.forks_count, closedIssuesCount, data.stargazers_count);
+
     let project = await Projects.findOne({ gitLink: data.html_url });
     if (!project) {
       project = new Projects({
@@ -31,19 +40,23 @@ export const fetchGithubRepo = async (userId, owner, repoName) => {
         content: data.description || 'No description provided',
         gitLink: data.html_url,
         status: 'active',
+        expRange: expRange,
       });
       await project.save();
     }
-
+    
     const repoData = {
       name: data.name,
       gitLink: data.html_url,
       description: data.description,
       stars: data.stargazers_count,
       forks: data.forks_count,
-      issues: data.open_issues_count,
+      closedIssues: closedIssuesCount,
       language: data.language,
+      expRange: expRange, // Add EXP range to response
     };
+
+    console.log('repoData:', repoData);
 
     cache.set(cacheKey, repoData);
     return repoData;
@@ -51,6 +64,7 @@ export const fetchGithubRepo = async (userId, owner, repoName) => {
     throw new Error('Failed to fetch GitHub repo');
   }
 };
+
 
 export const getAllProjects = async (userId) => {
   let cachedProjects = cache.get("allProjects");
@@ -104,13 +118,18 @@ export const getProjectIssues = async (userId, projectId, state) => {
     const project = await Projects.findById(projectId);
     if (!project) throw new Error('Project not found');
 
+    const { expRange } = project;
+    const { min, max } = expRange; // Destructure min and max EXP from expRange
+
     const repoPath = project.gitLink.replace('https://github.com/', '');
     const [owner, repo] = repoPath.split('/');
-    
+
     // Use the state dynamically (open or closed)
     const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=${state}&page=1&per_page=100`;
 
     const { data } = await axios.get(githubApiUrl, { headers });
+    
+    // Process issues and assign EXP
     const issues = data.map(issue => ({
       title: issue.title,
       url: issue.html_url,
@@ -125,12 +144,13 @@ export const getProjectIssues = async (userId, projectId, state) => {
       labels: issue.labels.map(label => label.name),
       pullRequestUrl: issue.pull_request ? issue.pull_request.html_url : null,
       body: issue.body,
+      exp: assignIssueExp(issue, min, max), // Assign calculated EXP
     }));
 
     cache.set(`issues_${projectId}_${state}`, issues);
-    return issues;
-  } catch {
-    throw new Error('Failed to fetch issues from GitHub');
+    return issues; // Corrected return statement
+  } catch (error) {
+    throw new Error(`Failed to fetch issues from GitHub: ${error.message}`);
   }
 };
 

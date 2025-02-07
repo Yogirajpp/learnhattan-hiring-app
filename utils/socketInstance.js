@@ -1,31 +1,75 @@
-import { fetchGithubRepo, getAllProjects } from "../controller/projectContoller.js";
+import NodeCache from "node-cache";
+import { fetchGithubRepo, getAllProjects, getIssueComments, getProjectIssues } from "../controllers/projectContoller.js";
+
+const cache = new NodeCache({ stdTTL: 86400 }); // 24-hour cache
 
 export const socketHandler = (io) => {
   io.on('connection', (socket) => {
-    console.log('Client connected via Socket.io');
+    console.log(`Client connected: ${socket.id}`);
 
-    socket.on('getAllProjects', async (callback) => {
+    // Fetch all projects (cache-first approach)
+    socket.on('getAllProjects', async ({userId}, callback) => {
       try {
-        const projects = await getAllProjects();
+        let projects = cache.get("allProjects");
+        if (!projects) {
+          projects = await getAllProjects(userId);
+          cache.set("allProjects", projects);
+        }
         callback({ success: true, projects });
       } catch (error) {
-        console.error('Error fetching projects:', error);
         callback({ success: false, error: 'Failed to fetch projects' });
       }
     });
 
-    socket.on('fetchRepo', async ({ owner, repoName }, callback) => {
+    // Fetch GitHub repo details (cache-first)
+    socket.on('fetchRepo', async ({ userId, owner, repoName }, callback) => {
       try {
-        const project = await fetchGithubRepo(owner, repoName);
+        if (!owner || !repoName) return callback({ success: false, error: 'Owner and repoName are required' });
+
+        const cacheKey = `repo_${owner}_${repoName}`;
+        let project = cache.get(cacheKey);
+
+        if (!project) {
+          project = await fetchGithubRepo(userId,owner, repoName);
+          cache.set(cacheKey, project);
+        }
+
         callback({ success: true, project });
       } catch (error) {
-        console.error('Error fetching GitHub repo:', error);
         callback({ success: false, error: 'Failed to fetch GitHub repo' });
       }
     });
 
+    // Fetch project issues (cache-first)
+    socket.on('getProjectIssues', async ({userId, projectId }, callback) => {
+      try {
+        let issues = cache.get(`issues_${projectId}`);
+        if (!issues) {
+          issues = await getProjectIssues(userId, projectId);
+          cache.set(`issues_${projectId}`, issues);
+        }
+        callback({ success: true, issues });
+      } catch (error) {
+        callback({ success: false, error: 'Failed to fetch project issues' });
+      }
+    });
+
+    socket.on('getIssueComments', async ({userId, owner, repoName, issueId }, callback) => {
+      try {
+        if (!owner || !repoName || !issueId) {
+          return callback({ success: false, error: 'Owner, repoName, and issueId are required' });
+        }
+    
+        const comments = await getIssueComments(userId, owner, repoName, issueId);
+        callback({ success: true, comments });
+      } catch (error) {
+        callback({ success: false, error: 'Failed to fetch issue comments' });
+      }
+    });    
+
+    // Handle client disconnect
     socket.on('disconnect', () => {
-      console.log('Client disconnected');
+      console.log(`Client disconnected: ${socket.id}`);
     });
   });
 };

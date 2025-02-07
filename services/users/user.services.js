@@ -3,6 +3,8 @@ import { CustomError } from "../../utils/index.js";
 import JobApplication from "../../models/JobApplication.js";
 import UserAnalytics from "../../models/UserAnalytics.js";
 import IssueEnrollment from "../../models/IssueEnrollment.js";
+import Jobs from "../../models/Jobs.js";
+
 
 /**
  * Create a new user in the User model
@@ -280,5 +282,37 @@ export const applyForIssue = async (req, res) => {
   } catch (error) {
     console.error("Error in applyForIssue:", error);
     res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+export const getUserJobs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    
+    const applications = await JobApplication.find({ userId }).select("jobId");
+    const jobIds = applications.map(app => app.jobId);
+    
+    const jobs = await Jobs.find({ _id: { $in: jobIds } });
+    
+    res.json({ jobs });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching jobs", error });
+  }
+};
+
+export const getUserIssues = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required" });
+    }
+
+    const issues = await IssueEnrollment.find({ userId });
+
+    res.status(200).json({ issues });
+  } catch (error) {
+    console.error("Error fetching issues:", error);
+    res.status(500).json({ message: "Internal Server Error" });
   }
 };

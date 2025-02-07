@@ -21,9 +21,7 @@ router.post('/createCompany', createCompany);
 router.get('/getCompany', getAllCompanies);
 
 router.post('/createJob', createJob);
-
 router.get('/getJobByCompanyId/:companyId', getJobsByCompany);
 router.get('/getJobById/:jobId', getJobById);
-
 
 export default router;

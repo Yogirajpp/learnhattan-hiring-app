@@ -2,6 +2,7 @@ import { Company, User } from "../../models/index.js";
 import { CustomError } from "../../utils/index.js";
 import JobApplication from "../../models/JobApplication.js";
 import UserAnalytics from "../../models/UserAnalytics.js";
+import IssueEnrollment from "../../models/IssueEnrollment.js";
 
 /**
  * Create a new user in the User model
@@ -253,5 +254,31 @@ export const getUserExpPoint = async (req, res) => {
   } catch (error) {
     console.error("Error fetching user experience points:", error);
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+export const applyForIssue = async (req, res) => {
+  try {
+    const { userId, owner, repo, issue_number } = req.body;
+    console.log(userId, owner, repo, issue_number);
+
+    if (!userId || !owner || !repo || !issue_number) {
+      return res.status(400).json({ success: false, message: "Missing required fields" });
+    }
+
+    // Check if user has already applied
+    const existingEnrollment = await IssueEnrollment.findOne({ userId, owner, repo, issue_number });
+
+    if (existingEnrollment) {
+      return res.status(400).json({ success: false, message: "You have already applied for this issue." });
+    }
+
+    const enrollment = new IssueEnrollment({ userId, owner, repo, issue_number });
+    await enrollment.save();
+
+    return res.status(201).json({ success: true, message: "Applied successfully!" });
+  } catch (error) {
+    console.error("Error in applyForIssue:", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
   }
 };

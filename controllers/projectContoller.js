@@ -115,6 +115,7 @@ export const getProjectIssues = async (userId, projectId, state) => {
   try {
     const headers = await getAuthHeaders(userId);
     console.log('headers:', headers);
+
     const project = await Projects.findById(projectId);
     if (!project) throw new Error('Project not found');
 
@@ -131,6 +132,7 @@ export const getProjectIssues = async (userId, projectId, state) => {
     
     // Process issues and assign EXP
     const issues = data.map(issue => ({
+      id: issue.id,
       title: issue.title,
       url: issue.html_url,
       state: issue.state,

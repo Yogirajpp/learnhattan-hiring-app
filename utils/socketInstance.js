@@ -41,11 +41,11 @@ export const socketHandler = (io) => {
     });
 
     // Fetch project issues (cache-first)
-    socket.on('getProjectIssues', async ({userId, projectId }, callback) => {
+    socket.on('getProjectIssues', async ({userId, projectId, state }, callback) => {
       try {
-        let issues = cache.get(`issues_${projectId}`);
+        let issues = cache.get(`issues_${projectId}_${state}`);
         if (!issues) {
-          issues = await getProjectIssues(userId, projectId);
+          issues = await getProjectIssues(userId, projectId, state);
           cache.set(`issues_${projectId}`, issues);
         }
         callback({ success: true, issues });

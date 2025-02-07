@@ -94,8 +94,8 @@ export const getAllProjects = async (userId) => {
   }
 };
 
-export const getProjectIssues = async (userId, projectId) => {
-  let cachedIssues = cache.get(`issues_${projectId}`);
+export const getProjectIssues = async (userId, projectId, state) => {
+  let cachedIssues = cache.get(`issues_${projectId}_${state}`);
   if (cachedIssues) return cachedIssues;
 
   try {
@@ -106,7 +106,9 @@ export const getProjectIssues = async (userId, projectId) => {
 
     const repoPath = project.gitLink.replace('https://github.com/', '');
     const [owner, repo] = repoPath.split('/');
-    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=open&page=1&per_page=100`;
+    
+    // Use the state dynamically (open or closed)
+    const githubApiUrl = `https://api.github.com/repos/${owner}/${repo}/issues?state=${state}&page=1&per_page=100`;
 
     const { data } = await axios.get(githubApiUrl, { headers });
     const issues = data.map(issue => ({
@@ -125,12 +127,13 @@ export const getProjectIssues = async (userId, projectId) => {
       body: issue.body,
     }));
 
-    cache.set(`issues_${projectId}`, issues);
+    cache.set(`issues_${projectId}_${state}`, issues);
     return issues;
   } catch {
     throw new Error('Failed to fetch issues from GitHub');
   }
 };
+
 
 export const getIssueComments = async (userId, owner, repoName, issueId) => {
   const cacheKey = `comments_${owner}_${repoName}_${issueId}`;

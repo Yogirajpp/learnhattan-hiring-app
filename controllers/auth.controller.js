@@ -1,9 +1,9 @@
-
 import mongoose from 'mongoose';
 import { AUTH_PROVIDERS, COMPANY_STATUSES, EntityTypes } from '../configs/index.js';
 import { AdminServices, AuthServices, CompanyServices, UserServices } from '../services/index.js';
 import { createResponse, CustomError } from '../utils/index.js';
 import User from '../models/User.js';
+import UserAnalytics from '../models/UserAnalytics.js';
 
 /**
  * User registration controller
@@ -21,6 +21,10 @@ export const registerUser = async (req, res, next) => {
         // Create the user
         const user = await UserServices.createUser({ name, email, password: hashedPassword, bio, avatar, skills, socials }, session);
         if (!user) throw new CustomError('Failed to create user', 400);
+        console.log(user._id)
+
+        // Create UserAnalytics entry
+        await UserAnalytics.create([{ userId: user._id }], { session });
 
         // Commit the transaction
         await session.commitTransaction();
@@ -52,6 +56,9 @@ export const loginUser = async (req, res, next) => {
         const user = await UserServices.getUserByEmail(email, true);
         if (!user) throw new CustomError('Invalid email or password', 401);
 
+        console.log(user);
+        console.log(user._id);
+
         // Validate the user's password
         const isValidPassword = await AuthServices.validatePassword(password, user.password);
         if (!isValidPassword) throw new CustomError('Invalid email or password', 401);
@@ -61,7 +68,7 @@ export const loginUser = async (req, res, next) => {
         if (!authToken) throw new CustomError('Failed to generate auth token', 500);
 
         // Return the auth token
-        res.status(200).json(createResponse(200, "Login successful", { token: authToken }).success());
+        res.status(200).json(createResponse(200, "Login successful", { token: authToken, userId: user._id }).success());
     } catch (error) {
         next(error);
     }

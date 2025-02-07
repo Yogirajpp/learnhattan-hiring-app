@@ -5,7 +5,7 @@ import { getAllJobs } from '../controllers/Job.js';
 import { createCompany, getAllCompanies } from '../services/company.services.js';
 import { createJob, getJobById, getJobsByCompany } from '../adminController/Job.js';
 import { createWaitlistEntry } from '../controllers/waitListController.js';
-import { applyForIssue, applyForJob, getCompanyNameById, getUserExpPoint } from '../services/users/user.services.js';
+import { applyForIssue, applyForJob, getCompanyNameById, getUserExpPoint, getUserIssues, getUserJobs } from '../services/users/user.services.js';
 // import { createCompany,getAllCompanies } from '../adminController/Company.js';
 // import { createJob,getJobsByCompany,getJobById } from '../adminController/Job.js';
 // import { getAllJobs } from '../controller/userController/Job.js';
@@ -26,6 +26,8 @@ router.get('/getAllJobs', getAllJobs);
 router.post('/applyForJob', applyForJob);
 router.get('/getUserExp/:userId',getUserExpPoint);
 router.post("/applyForIssue", applyForIssue);
+router.get("/jobsApplied/:userId", getUserJobs);
+router.get("/issuesEnrolled/:userId", getUserIssues);
 
 
 // Admin routes

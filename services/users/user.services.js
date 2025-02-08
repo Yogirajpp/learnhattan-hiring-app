@@ -316,3 +316,32 @@ export const getUserIssues = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
+
+// Fetch Top 3 Users + Specific User's Rank
+export const getLeaderboard = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Fetch top 3 users sorted by expPoint
+    const topUsers = await UserAnalytics.find()
+      .populate("userId", "name") // Fetch user's name
+      .sort({ expPoint: -1 })
+      .limit(3);
+
+    // Fetch all users and calculate the specific user's rank
+    const allUsers = await UserAnalytics.find().sort({ expPoint: -1 });
+    const userRank = allUsers.findIndex((user) => user.userId.toString() === userId) + 1;
+
+    // Fetch user data
+    const userData = await UserAnalytics.findOne({ userId }).populate("userId", "name");
+
+    if (!userData) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.json({ topUsers, userRank, userData });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching leaderboard" });
+  }
+};
+

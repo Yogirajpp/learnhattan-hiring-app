@@ -7,7 +7,7 @@ import { Server } from 'socket.io';
 import router from './routes/routes.js';
 import { socketHandler } from './utils/socketInstance.js';
 import http from 'http';
-import { webhookHandler } from './controllers/webHookController.js';
+// import { webhookHandler } from './controllers/webHookController.js';
 import { errorHandler } from './middlewares/index.js';
 
 const app = express();
@@ -39,7 +39,7 @@ app.use("/api", router);
 socketHandler(io);
 
 // Setup GitHub Webhook endpoint
-app.use('/webhooks', webhookHandler(io));
+// app.use('/webhooks', webhookHandler(io));
 
 // middleware for handling errors
 app.use(errorHandler);

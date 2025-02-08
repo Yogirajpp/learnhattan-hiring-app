@@ -1,3 +1,6 @@
+import IssueEnrollment from "../models/IssueEnrollment.js";
+import UserAnalytics from "../models/UserAnalytics.js";
+
 export const calculateExpRange = (forks, closedIssues, stars) => {
   // New dynamic EXP range limits
   const baseExp = 50; // Minimum EXP for the weakest projects
@@ -54,4 +57,45 @@ export const assignIssueExp = (issue, minExp, maxExp) => {
   );
 
   return Math.floor(issueExp);
+};
+
+export const handlePullRequestMerge = async ({ pull_request }) => {
+  try {
+    const { title, merged_by, base } = pull_request;
+    const owner = base.repo.owner.login;
+    const repo = base.repo.name;
+
+    console.log(`Handling PR merge for ${owner}/${repo}`);
+    console.log(`PR title: ${title}`);
+    console.log(`Merged by: ${merged_by.login}`);
+
+    // Extract issue number from PR title (Assuming format: "close #123")
+    const issueMatch = title.match(/close #(\d+)/i);
+    if (!issueMatch) return;
+
+    const issue_number = parseInt(issueMatch[1], 10);
+    const mergingUser = merged_by.login;
+
+    // Find if this user applied for the issue
+    const enrollment = await IssueEnrollment.findOne({ owner, repo, issue_number }).populate('userId');
+
+    if (!enrollment || enrollment.userId.name !== mergingUser) {
+      console.log(`User ${mergingUser} did not apply for issue #${issue_number}`);
+      return;
+    }
+
+    // Award experience points
+    const userAnalytics = await UserAnalytics.findOne({ userId: enrollment.userId._id });
+
+    if (userAnalytics) {
+      userAnalytics.expPoint += 100;
+      await userAnalytics.save();
+    } else {
+      await UserAnalytics.create({ userId: enrollment.userId._id, expPoint: 100 });
+    }
+
+    console.log(`🎉 User ${mergingUser} awarded XP for merging PR that closes issue #${issue_number}`);
+  } catch (error) {
+    console.error("❌ Error in handlePullRequestMerge:", error);
+  }
 };
